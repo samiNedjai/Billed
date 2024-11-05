@@ -20,6 +20,21 @@ export default class NewBill {
     const file = this.document.querySelector(`input[data-testid="file"]`).files[0]
     const filePath = e.target.value.split(/\\/g)
     const fileName = filePath[filePath.length-1]
+
+    // Récupération de l'extension du fichier
+    const fileExtension = fileName.split('.').pop().toLowerCase()  
+
+    const errorMessage = this.document.querySelector(`span[data-testid="file-error"]`)
+    // Vérification de l'extension du fichier
+    if (!['jpg', 'jpeg', 'png'].includes(fileExtension)) {
+      console.log("Veuillez sélectionner un fichier au format jpg, jpeg ou png.")
+      errorMessage.style.display = "block" // Affiche le message d'erreur
+      e.target.value = ""  // Réinitialise la sélection de fichier
+      return
+    } else {
+      errorMessage.style.display = "none"  // Masque le message d'erreur si l'extension est correcte
+    }
+
     const formData = new FormData()
     const email = JSON.parse(localStorage.getItem("user")).email
     formData.append('file', file)
