@@ -72,6 +72,7 @@ export default class {
     this.document = document
     this.onNavigate = onNavigate
     this.store = store
+
     // Nouvel état pour chaque liste
     this.listStatus = { 1: false, 2: false, 3: false }; 
 
@@ -139,7 +140,8 @@ export default class {
     // if (this.counter % 2 === 0) 
 
      // Bascule l'état de la liste (ouvrir si fermée, fermer si ouverte)
-  this.listStatus[index] = !this.listStatus[index];
+     this.listStatus[index] = !this.listStatus[index];
+     
     if (this.listStatus[index]){
 
        // Si la liste est ouverte, on affiche les tickets
