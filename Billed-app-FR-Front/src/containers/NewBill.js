@@ -14,7 +14,14 @@ export default class NewBill {
     this.fileName = null
     this.billId = null
     new Logout({ document, localStorage, onNavigate })
+    // Ajouter un listener pour le bouton retour du navigateur
+    window.addEventListener("popstate", this.handleBackNavigation);
   }
+
+  handleBackNavigation = () => {
+    this.onNavigate(ROUTES_PATH['Bills']); 
+  };
+
   handleChangeFile = e => {
     e.preventDefault()
     const file = this.document.querySelector(`input[data-testid="file"]`).files[0]
@@ -25,6 +32,7 @@ export default class NewBill {
     const fileExtension = fileName.split('.').pop().toLowerCase()  
 
     const errorMessage = this.document.querySelector(`span[data-testid="file-error"]`)
+    console.log(errorMessage.style.display)
     // Vérification de l'extension du fichier
     if (!['jpg', 'jpeg', 'png'].includes(fileExtension)) {
       console.log("Veuillez sélectionner un fichier au format jpg, jpeg ou png.")
