@@ -114,6 +114,34 @@ describe("Given that I am a user on login page", () => {
     test("It should renders Bills page", () => {
       expect(screen.getAllByText("Mes notes de frais")).toBeTruthy();
     });
+
+    // NEW TEST: Handle case where store is null in login
+    test("When I call login and store is null, it should return null", async () => {
+      document.body.innerHTML = LoginUI();
+      const login = new Login({
+        document,
+        onNavigate: jest.fn(),
+        localStorage: window.localStorage,
+        store: null,
+      });
+
+      const result = await login.login({ email: "test@test.com", password: "123456" });
+      expect(result).toBeNull();
+    });
+
+    // NEW TEST: Handle case where store is null in createUser
+    test("When I call createUser and store is null, it should return null", async () => {
+      document.body.innerHTML = LoginUI();
+      const login = new Login({
+        document, 
+        onNavigate: jest.fn(),
+        localStorage: window.localStorage,
+        store: null,
+      });
+
+      const result = await login.createUser({ email: "test@test.com", password: "123456" });
+      expect(result).toBeNull();
+    });
   });
 });
 
