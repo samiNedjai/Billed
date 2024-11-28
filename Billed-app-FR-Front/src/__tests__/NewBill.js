@@ -3,14 +3,21 @@
  */
 
 import { fireEvent, screen } from "@testing-library/dom";
+import "@testing-library/jest-dom";
 import NewBillUI from "../views/NewBillUI.js";
 import NewBill from "../containers/NewBill.js";
-import BillsUI from "../views/BillsUI.js";
 import { localStorageMock } from "../__mocks__/localStorage.js";
 import mockStore from "../__mocks__/store.js";
 import { ROUTES_PATH } from "../constants/routes.js";
-
-
+import router from "../app/Router.js";
+const setNewBill = () => {
+  return new NewBill({
+    document,
+    onNavigate,
+    store: mockStore,
+    localStorage: window.localStorage,
+  });
+};
 
 describe("Given I am connected as an employee", () => {
   beforeEach(() => {
@@ -18,11 +25,28 @@ describe("Given I am connected as an employee", () => {
     window.localStorage.setItem('user', JSON.stringify({ type: 'Employee' }));
     document.body.innerHTML = NewBillUI();
     onNavigate = jest.fn();
+    
+  });
+
+  afterEach(() => {
+    jest.resetAllMocks();
   });
  
 
   describe("When I am on NewBill Page", () => {
-                    // Test unitaires
+
+                              // Test unitaires
+     test("Then newBill icon in vertical layout should be highlighted", async () => {
+      const root = document.createElement("div");
+      root.setAttribute("id", "root");
+      document.body.append(root);
+  
+      router(); // Charger le routeur
+      window.onNavigate(ROUTES_PATH.NewBill); // Simuler la navigation 
+      const mailIcons = screen.getAllByTestId("icon-mail");
+      expect(mailIcons[0]).toHaveClass("active-icon"); // Tester uniquement le premier élément
+  });                 
+                                     
     /**
      *  Vérifie que le formulaire NewBill est affiché
      */
@@ -33,7 +57,7 @@ describe("Given I am connected as an employee", () => {
    * Test : handleBackNavigation navigue correctement vers la page Bills
    */
     test("then it should navigate to Bills page when handleBackNavigation is called", () => {
-      const newBill = new NewBill({ document, onNavigate, store: mockStore, localStorage: window.localStorage });
+      const newBill = setNewBill();
       newBill.handleBackNavigation();
       expect(onNavigate).toHaveBeenCalledWith(ROUTES_PATH["Bills"]);
     });
@@ -48,7 +72,7 @@ describe("Given I am connected as an employee", () => {
      *  Affiche un message d'erreur pour un fichier au format incorrect
      */
     test("When I upload a file with an incorrect format, an error message should be displayed", () => {
-      const newBill = new NewBill({ document, onNavigate: jest.fn(), store: mockStore, localStorage: window.localStorage });
+      const newBill = setNewBill();
       const fileInput = screen.getByTestId("file");
       const errorMessage = screen.getByTestId("file-error");
       const invalidFile = new File(["file content"], "file.txt", { type: "text/plain" });
@@ -164,88 +188,52 @@ describe("Given I am connected as an employee", () => {
       expect(consollog).toHaveBeenCalledWith(new Error("Erreur de mise à jour"));
     });
 
-
-
-    
-
-//     test("fetches bills from an API and fails with 404 message error", async () => {
-//   // Mock propre de `mockStore.bills().create`
-//   jest.spyOn(mockStore, "bills").mockImplementation(() => ({
-//     create: jest.fn(() => {
-//       console.log("Mocked create called for 404"); // Vérifiez si cela s'affiche
-//       return Promise.reject(new Error("Erreur 404"));
-//     }),
-//   }));
-
-//   // Mock de `console.error`
-//   const consoleErrorMock = jest.spyOn(console, "error").mockImplementation((error) => {
-//     console.log("Error logged:", error.message); // Vérifiez si cette ligne s'affiche
-//   });
-
-//   // Configuration du DOM
-//   document.body.innerHTML = `<div id="root"></div>`;
-
-//   // Chargement de l'interface utilisateur avec l'erreur 404
-//   const html = BillsUI({ error: "Erreur 404" });
-//   document.body.innerHTML = html;
-
-//   // Attendez la fin de toutes les promesses
-//   await new Promise((resolve) => setTimeout(resolve, 100));
-
-//   // Vérifiez que le message d'erreur s'affiche
-//   const message = screen.getByText(/Erreur 404/);
-//   expect(message).toBeTruthy();
-
-//   // Vérifiez que `console.error` a été appelé avec l'erreur "Erreur 404"
-//   expect(consoleErrorMock).toHaveBeenCalledTimes(1);
-//   expect(consoleErrorMock).toHaveBeenCalledWith(new Error("Erreur 404"));
-
-//   // Nettoyez les mocks
-//   consoleErrorMock.mockRestore();
-// });
-
-
      /**
-     * Test d'intégration : Gestion d'une erreur 404 provenant de l'API
+     * Test d'intégration : Gestion d'une erreur 404 ou 500 provenant de l'API
      */
-    test("fetches bills from an API and fails with 404 message error", async () => {
-      jest.spyOn(mockStore, "bills");
-      jest.spyOn(console, "error").mockImplementation(() => {});
-      document.body.innerHTML = `<div id="root"></div>`;
+     describe("When an error occurs on API", () => {
+  test("Then new bill is added to the API but fetch fails with '404 page not found' error", async () => {
+    const newBill = setNewBill();
 
-      mockStore.bills.mockImplementationOnce(() => {
+    const mockedBill = jest
+      .spyOn(mockStore, "bills")
+      .mockImplementationOnce(() => {
         return {
-          create: () => Promise.reject(new Error("Erreur 404")),
+          create: jest.fn().mockRejectedValue(new Error("Erreur 404")),
         };
       });
 
-      const html = BillsUI({ error: "Erreur 404" });
-      document.body.innerHTML = html;
+    await expect(mockedBill().create).rejects.toThrow("Erreur 404");
 
-      const message =  screen.getByText(/Erreur 404/);
-      expect(message).toBeTruthy();
-    });
+    expect(mockedBill).toHaveBeenCalledTimes(1);
+
+    expect(newBill.billId).toBeNull();
+    expect(newBill.fileUrl).toBeNull();
+    expect(newBill.fileName).toBeNull();
+  });
 
     /**
      * Test d'intégration : Gestion d'une erreur 500 provenant de l'API
      */
-    test("fetches bills from an API and fails with 500 message error", async () => {
-      jest.spyOn(mockStore, "bills");
-      jest.spyOn(console, "error").mockImplementation(() => {});
-      document.body.innerHTML = `<div id="root"></div>`;
+    test("Then new bill is added to the API but fetch fails with '500 Internal Server error'", async () => {
+      const newBill = setNewBill();
 
-      mockStore.bills.mockImplementationOnce(() => {
-        return {
-          create: () => Promise.reject(new Error("Erreur 500")),
-        };
-      });
+      const mockedBill = jest
+        .spyOn(mockStore, "bills")
+        .mockImplementationOnce(() => {
+          return {
+            create: jest.fn().mockRejectedValue(new Error("Erreur 500")),
+          };
+        });
 
-      const html = BillsUI({ error: "Erreur 500" });
-      document.body.innerHTML = html;
+      await expect(mockedBill().create).rejects.toThrow("Erreur 500");
 
-      const message =  screen.getByText(/Erreur 500/);
-      expect(message).toBeTruthy();
+      expect(mockedBill).toHaveBeenCalledTimes(1);
+
+      expect(newBill.billId).toBeNull();
+      expect(newBill.fileUrl).toBeNull();
+      expect(newBill.fileName).toBeNull();
     });
-
+  });
   });
 });
